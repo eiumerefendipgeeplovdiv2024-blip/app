@@ -1,9 +1,9 @@
 import streamlit as st
 
 # Настройка на страницата
-st.set_page_config(page_title="FitGenie", page_icon="⚡", layout="wide")
+st.set_page_config(page_title="FitGenie Pro", page_icon="💪", layout="wide")
 
-def get_diet_details(goal, calories):
+def get_diet_details(goal):
     if goal == "Отслабване":
         return ["Овесени ядки с горски плодове", "Пилешка салата с авокадо", "Печена риба със зеленчуци"]
     elif goal == "Качване на мускулна маса":
@@ -11,72 +11,76 @@ def get_diet_details(goal, calories):
     else:
         return ["Кисело мляко с гранола", "Пуешки сандвич", "Паста със зехтин и пармезан"]
 
-def get_workout_details(days):
-    workouts = {
-        2: {"Тип": "Full Body", "Упражнения": ["Клек", "Лицеви опори", "Мъртва тяга", "Планк"]},
-        3: {"Тип": "Push/Pull/Legs", "Упражнения": ["Бенч преса", "Набирания", "Напади", "Раменна преса"]},
-        4: {"Тип": "Upper/Lower Split", "Упражнения": ["Гребане с дъмбел", "Лег преса", "Бицепсово сгъване", "Кофички"]},
-        5: {"Тип": "Body Part Split", "Упражнения": ["Изолиращи упражнения за всяка група", "Кардио сесии"]}
+def get_workout_details(training_type, days):
+    # Логика за Фитнес (Зала)
+    gym_plans = {
+        2: "Full Body (Клек, Лежанка, Тяга)",
+        3: "Push / Pull / Legs (Бутащи, Дърпащи, Крака)",
+        4: "Upper / Lower (Горна и Долна част)",
+        5: "Brosplit (Гърди, Гръб, Крака, Рамена, Ръце)"
     }
-    return workouts.get(days, workouts[3])
+    
+    # Логика за Калистеника (Собствено тегло)
+    cali_plans = {
+        2: "Full Body Cali (Лицеви, Набирания, Клекове)",
+        3: "Fundamentals (Набирания, Кофички, Напади)",
+        4: "Skill + Strength (Работа за стойка на ръце + Сила)",
+        5: "Advanced Flow (Комплексни движения и издръжливост)"
+    }
+
+    if training_type == "Фитнес (Зала)":
+        plan = gym_plans.get(days, "Gym Routine")
+        ex = ["Бенч преса", "Мъртва тяга", "Клякане с лост", "Раменна преса"]
+    else:
+        plan = cali_plans.get(days, "Calisthenics Routine")
+        ex = ["Набирания", "Лицеви опори", "Кофички на успоредка", "Набирания с подхват"]
+        
+    return plan, ex
 
 # --- Интерфейс ---
-st.title("🏋️‍♂️ FitGenie: Твоят План за Трансформация")
-st.markdown("---")
+st.title("⚡ FitGenie: Твоят Персонален План")
+st.markdown("Избери своите параметри и генерирай режим за секунди.")
 
-# Странична лента за входни данни
 with st.sidebar:
-    st.header("📋 Лични данни")
-    weight = st.number_input("Тегло (кг)", min_value=40, max_value=200, value=75)
-    height = st.number_input("Височина (см)", min_value=120, max_value=230, value=175)
-    age = st.number_input("Възраст", min_value=15, max_value=90, value=25)
+    st.header("⚙️ Настройки")
+    weight = st.number_input("Тегло (кг)", 40, 200, 75)
+    height = st.number_input("Височина (см)", 120, 230, 175)
+    age = st.number_input("Възраст", 15, 90, 25)
     gender = st.selectbox("Пол", ["Мъж", "Жена"])
     goal = st.selectbox("Цел", ["Отслабване", "Поддържане", "Качване на мускулна маса"])
-    activity = st.select_slider("Активност", options=["Ниска", "Умерена", "Висока"])
-    days = st.slider("Тренировки в седмицата", 2, 5, 3)
+    
+    st.write("---")
+    # НОВИЯТ ИЗБОР ТУК:
+    training_type = st.radio("Тип тренировки:", ["Фитнес (Зала)", "Калистеника (Собствено тегло)"])
+    days = st.slider("Дни в седмицата", 2, 5, 3)
 
-# Логика за изчисления (Mifflin-St Jeor)
-if gender == "Мъж":
-    bmr = 10 * weight + 6.25 * height - 5 * age + 5
-else:
-    bmr = 10 * weight + 6.25 * height - 5 * age - 161
+# Пресмятане на калории
+bmr = (10 * weight + 6.25 * height - 5 * age + 5) if gender == "Мъж" else (10 * weight + 6.25 * height - 5 * age - 161)
+tdee = int(bmr * 1.55) # Приемаме средна активност
 
-act_mult = {"Ниска": 1.2, "Умерена": 1.55, "Висока": 1.725}
-tdee = int(bmr * act_mult[activity])
-
-if goal == "Отслабване":
-    target_cals = tdee - 500
-elif goal == "Качване на мускулна маса":
-    target_cals = tdee + 300
-else:
-    target_cals = tdee
+if goal == "Отслабване": target_cals = tdee - 500
+elif goal == "Качване на мускулна маса": target_cals = tdee + 300
+else: target_cals = tdee
 
 # --- Показване на резултатите ---
 col1, col2 = st.columns(2)
 
 with col1:
-    st.subheader("🥗 Хранителен План")
-    st.info(f"Твоят дневен калориен прием: **{target_cals} kcal**")
-    
-    meals = get_diet_details(goal, target_cals)
-    st.write("**Примерно меню за деня:**")
-    for meal in meals:
-        st.markdown(f"- {meal}")
-    
-    # Примерно разпределение на макроси
-    st.write("---")
-    st.write(f"🧬 Протеини: {int(weight * 2)}г | Въглехидрати: {int(target_cals * 0.4 / 4)}г | Мазнини: {int(target_cals * 0.25 / 9)}г")
+    st.subheader("🥗 Хранене")
+    st.info(f"Цел: **{target_cals} ккал** на ден")
+    meals = get_diet_details(goal)
+    for m in meals:
+        st.write(f"🍴 {m}")
 
 with col2:
-    st.subheader("💪 Тренировъчна Програма")
-    workout_data = get_workout_details(days)
-    st.success(f"Тип програма: **{workout_data['Тип']}**")
+    st.subheader("🏋️ Тренировка")
+    plan_name, exercises = get_workout_details(training_type, days)
+    st.success(f"Режим: **{plan_name}**")
+    st.write(f"Тип: {training_type}")
     
-    st.write("**Основни упражнения:**")
-    for ex in workout_data['Упражнения']:
-        st.markdown(f"✅ {ex} (3 серии x 10-12 повторения)")
-    
-    st.warning("💡 Съвет: Винаги загрявай 5-10 минути преди начало!")
+    st.write("**Примерни упражнения:**")
+    for e in exercises:
+        st.write(f"🔹 {e}")
 
-st.markdown("---")
-st.caption("Забележка: Този план е генериран автоматично. Консултирайте се със специалист преди големи промени в режима.")
+st.divider()
+st.info("💡 **Съвет:** При калистениката се фокусирай върху правилното изпълнение, а във фитнеса - върху прогресивното натоварване с тежести.")
