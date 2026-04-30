@@ -1,72 +1,83 @@
-import streamlit as st
 
-def calculate_macros(goal, tdee):
-    if goal == "Lose Weight":
-        calories = tdee - 500
-        protein = 1.2  # grams per lb (approx)
-    elif goal == "Gain Muscle":
-        calories = tdee + 300
-        protein = 1.0
+       import streamlit as st
+
+# Настройка на страницата
+st.set_page_config(page_title="FitGenie", page_icon="⚡", layout="wide")
+
+def get_diet_details(goal, calories):
+    if goal == "Отслабване":
+        return ["Овесени ядки с горски плодове", "Пилешка салата с авокадо", "Печена риба със зеленчуци"]
+    elif goal == "Качване на мускулна маса":
+        return ["Яйца с пълнозърнест хляб", "Ориз с телешко и броколи", "Протеинов шейк с банан и фъстъчено масло"]
     else:
-        calories = tdee
-        protein = 0.8
-    
-    # Simple macro split: 30% Protein, 40% Carbs, 30% Fats
-    return int(calories), int((calories * 0.3) / 4), int((calories * 0.4) / 4), int((calories * 0.3) / 9)
+        return ["Кисело мляко с гранола", "Пуешки сандвич", "Паста със зехтин и пармезан"]
 
-def get_workout(days):
-    plans = {
-        2: "Full Body (Day 1: Compound Lifts, Day 2: Accessory Work)",
-        3: "Full Body Split (Mon/Wed/Fri)",
-        4: "Upper/Lower Split (2 Upper days, 2 Lower days)",
-        5: "PPL + Upper/Lower (Push, Pull, Legs, Upper, Lower)",
-        6: "PPL (Push, Pull, Legs x2)"
+def get_workout_details(days):
+    workouts = {
+        2: {"Тип": "Full Body", "Упражнения": ["Клек", "Лицеви опори", "Мъртва тяга", "Планк"]},
+        3: {"Тип": "Push/Pull/Legs", "Упражнения": ["Бенч преса", "Набирания", "Напади", "Раменна преса"]},
+        4: {"Тип": "Upper/Lower Split", "Упражнения": ["Гребане с дъмбел", "Лег преса", "Бицепсово сгъване", "Кофички"]},
+        5: {"Тип": "Body Part Split", "Упражнения": ["Изолиращи упражнения за всяка група", "Кардио сесии"]}
     }
-    return plans.get(days, "Full Body Routine")
+    return workouts.get(days, workouts[3])
 
-# --- Streamlit UI ---
-st.set_page_config(page_title="Fitness Planner", layout="centered")
-st.title("🏋️‍♂️ AI Personal Trainer & Nutritionist")
-st.markdown("Enter your details below to generate a custom plan.")
+# --- Интерфейс ---
+st.title("🏋️‍♂️ FitGenie: Твоят План за Трансформация")
+st.markdown("---")
 
+# Странична лента за входни данни
 with st.sidebar:
-    st.header("Your Stats")
-    age = st.number_input("Age", min_value=15, max_value=100, value=25)
-    gender = st.selectbox("Gender", ["Male", "Female"])
-    weight = st.number_input("Weight (kg)", min_value=40, value=75)
-    height = st.number_input("Height (cm)", min_value=120, value=175)
-    activity = st.selectbox("Activity Level", ["Sedentary", "Lightly Active", "Moderately Active", "Very Active"])
-    goal = st.selectbox("Goal", ["Lose Weight", "Maintain", "Gain Muscle"])
-    days = st.slider("Workout days per week", 2, 6, 3)
+    st.header("📋 Лични данни")
+    weight = st.number_input("Тегло (кг)", min_value=40, max_value=200, value=75)
+    height = st.number_input("Височина (см)", min_value=120, max_value=230, value=175)
+    age = st.number_input("Възраст", min_value=15, max_value=90, value=25)
+    gender = st.selectbox("Пол", ["Мъж", "Жена"])
+    goal = st.selectbox("Цел", ["Отслабване", "Поддържане", "Качване на мускулна маса"])
+    activity = st.select_slider("Активност", options=["Ниска", "Умерена", "Висока"])
+    days = st.slider("Тренировки в седмицата", 2, 5, 3)
 
-if st.button("Generate My Plan"):
-    # BMR Calculation (Mifflin-St Jeor Equation)
-    if gender == "Male":
-        bmr = 10 * weight + 6.25 * height - 5 * age + 5
-    else:
-        bmr = 10 * weight + 6.25 * height - 5 * age - 161
-    
-    # Activity Multipliers
-    multipliers = {"Sedentary": 1.2, "Lightly Active": 1.375, "Moderately Active": 1.55, "Very Active": 1.725}
-    tdee = bmr * multipliers[activity]
-    
-    calories, p, c, f = calculate_macros(goal, tdee)
-    
-    # --- Display Results ---
-    col1, col2 = st.columns(2)
-    
-    with col1:
-        st.subheader("🍎 Diet Plan")
-        st.metric("Daily Calories", f"{calories} kcal")
-        st.write(f"**Protein:** {p}g")
-        st.write(f"**Carbs:** {c}g")
-        st.write(f"**Fats:** {f}g")
-        
-    with col2:
-        st.subheader("💪 Workout Plan")
-        st.info(f"Recommended Split: **{get_workout(days)}**")
-        st.write("1. Focus on progressive overload.")
-        st.write("2. Prioritize compound movements.")
-        st.write("3. Rest 60-90s between sets.")
+# Логика за изчисления (Mifflin-St Jeor)
+if gender == "Мъж":
+    bmr = 10 * weight + 6.25 * height - 5 * age + 5
+else:
+    bmr = 10 * weight + 6.25 * height - 5 * age - 161
 
-    st.success("Plan generated! Remember to stay hydrated and get 7-9 hours of sleep.")
+act_mult = {"Ниска": 1.2, "Умерена": 1.55, "Висока": 1.725}
+tdee = int(bmr * act_mult[activity])
+
+if goal == "Отслабване":
+    target_cals = tdee - 500
+elif goal == "Качване на мускулна маса":
+    target_cals = tdee + 300
+else:
+    target_cals = tdee
+
+# --- Показване на резултатите ---
+col1, col2 = st.columns(2)
+
+with col1:
+    st.subheader("🥗 Хранителен План")
+    st.info(f"Твоят дневен калориен прием: **{target_cals} kcal**")
+    
+    meals = get_diet_details(goal, target_cals)
+    st.write("**Примерно меню за деня:**")
+    for meal in meals:
+        st.markdown(f"- {meal}")
+    
+    # Примерно разпределение на макроси
+    st.write("---")
+    st.write(f"🧬 Протеини: {int(weight * 2)}г | Въглехидрати: {int(target_cals * 0.4 / 4)}г | Мазнини: {int(target_cals * 0.25 / 9)}г")
+
+with col2:
+    st.subheader("💪 Тренировъчна Програма")
+    workout_data = get_workout_details(days)
+    st.success(f"Тип програма: **{workout_data['Тип']}**")
+    
+    st.write("**Основни упражнения:**")
+    for ex in workout_data['Упражнения']:
+        st.markdown(f"✅ {ex} (3 серии x 10-12 повторения)")
+    
+    st.warning("💡 Съвет: Винаги загрявай 5-10 минути преди начало!")
+
+st.markdown("---")
+st.caption("Забележка: Този план е генериран автоматично. Консултирайте се със специалист преди големи промени в режима.")
