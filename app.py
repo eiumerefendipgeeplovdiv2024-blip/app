@@ -1,5 +1,4 @@
-
-       import streamlit as st
+import streamlit as st
 
 # Настройка на страницата
 st.set_page_config(page_title="FitGenie", page_icon="⚡", layout="wide")
